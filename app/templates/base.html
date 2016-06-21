@@ -1,0 +1,56 @@
+{% extends "bootstrap/base.html "%}
+
+{% block title %}迷幻氛围{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="shortcut icon" href="{{ url_for('static', filename='title.ico') }}" type="image/x-icon">
+<link rel="icon" href="{{ url_for('static', filename='title.ico') }}"> type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
+
+{% block navbar %}
+<div class="navabr navbar-inverse" role="navigation">  <!-- role告诉辅助设备这个元素代表的角色 -->
+    <div class="container">
+        <a class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <!-- toggle开关  collapse倒塌 -->
+                <span class="sr-only">Toggle navigation</span> <!-- 使用span来组合行内元素，以便通过样式来格式化它们 -->
+                <span class="sr-only"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}"Flasky</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="{{ url_for('main.index') }}">Home</a> </li>
+
+            </ul>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
