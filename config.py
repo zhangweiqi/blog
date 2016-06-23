@@ -6,6 +6,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'secret of secret'
     SQLALCHEMY_COMMIT_ON_TEARDOWN=True
+    FLASK_ADMIN=os.environ.get('FLASK_ADMIN')
+    # administrator's emails, when these email are registering,
+    # they will be given admin role.
 
     @staticmethod
     def init_app(app):

@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 from flask import render_template, request, jsonify
 from . import main
 
 
-@main.app_errorhandler(403)  # 该函数作用于所有的错误页面
+@main.app_errorhandler(403)  # this decorator for all error page
 def forbidden(e):
     if request.accept_mimetypes.accept_json and \
-            not request.accept_mimetypes.accept_html:  # 当请求报文的主体时json格式时
-        response = jsonify({'error': 'Forbidden'})
+            not request.accept_mimetypes.accept_html:  # when request accept_mimetype
+        response = jsonify({'error': 'Forbidden'})  # is json
         response.status_code = 403
         return response
     return render_template('403.html'), 403
