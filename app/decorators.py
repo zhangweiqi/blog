@@ -10,7 +10,7 @@ def permission_required(permission):
         def decorated_function(*args, **kwargs):
             if not current_user.can(permission):
                 abort(403)
-                # server understand the request, but reject to execute
+                # 403:server understand the request, but reject to execute
                 # differ to 401, authentication cant solve problem,
                 # and the request should not submit repeatedly
             return f(*args, **kwargs)
@@ -18,3 +18,7 @@ def permission_required(permission):
         return decorated_function
 
     return decorator
+
+
+def admin_required(f):
+    return permission_required(Permission.ADMINISTER)(f)

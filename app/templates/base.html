@@ -4,33 +4,74 @@
 
 {% block head %}
 {{ super() }}
+<meta charset="utf-8">
 <link rel="shortcut icon" href="{{ url_for('static', filename='title.ico') }}" type="image/x-icon">
-<link rel="icon" href="{{ url_for('static', filename='title.ico') }}"> type="image/x-icon">
+<link rel="icon" href="{{ url_for('static', filename='title.ico') }}" type="image/x-icon">
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 {% endblock %}
 
 {% block navbar %}
-<div class="navabr navbar-inverse" role="navigation">  <!-- role告诉辅助设备这个元素代表的角色 -->
+<div class="nav navbar-pills" role="navigation">
     <div class="container">
-        <a class="navbar-header">
+        <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <!-- toggle开关  collapse倒塌 -->
-                <span class="sr-only">Toggle navigation</span> <!-- 使用span来组合行内元素，以便通过样式来格式化它们 -->
-                <span class="sr-only"></span>
+                <span class="sr-only">Toggle navigation</span> <!-- toggle：开关 collapse:塌陷 -->
+                <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{{ url_for('main.index') }}"Flasky</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">首页</a>
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="{{ url_for('main.index') }}">Home</a> </li>
-
+                {% if current_user.is_authenticated %}
+                <li><a href="{{ url_for('main.user', username=current_user.username) }}">我的主页</a></li>
+                <li><a href="{{ url_for('         ', username=current_user.username) }}">我的关注</a></li>
+                <li><a href="{{ url_for('         ', username=current_user.username) }}">我的粉丝</a></li>
+                {% endif %}
             </ul>
+            <ul class="nav navbar-nav navbar-right">
+                {% if current_user.can(Permission.MODERATE_COMMENTS) %}
+                <li><a href="{{ url_for('main.moderate') }}">管理评论</a></li>
+                {% endif %}
+                {% if current_user.is_authenticated %}
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <!-- gravatar:头像 caret:插入符号 -->
+                        <img src="{{ current_user.gravatar(size=18) }}">账户 <b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{{ url_for('auth.change_password') }}">更改密码</a></li>
+                        <li><a href="{{ url_for('auth.change_email_request') }}">更改邮箱</a></li>
+                        <li><a href="{{ url_for('auth.login') }}">切换账号</a></li>
+                        <li><a href="{{ url_for('auth.logout') }}">退出登录</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li><a href="{{ url_for('auth.login') }}">登录账号</a></li>
+                {% endif %}
+            </ul>
+        </div>
     </div>
 </div>
+{% endblock %}
 
+{% block content %}
+<div class="container">
+    {% for message in get_flashed_messages() %}
+    <div class="alert alert-warning">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {{ message }}
+    </div>
+    {% endfor %}
 
+    {% block page_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ moment.include_moment() }}
+{% endblock %}
 
 
 

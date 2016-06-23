@@ -109,7 +109,28 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         self.followed.append(Follow(follow=self))
 
     def can(self, permissions):
+        """
+        Verify the permissions of user is or not param.
+        :param permissions:
+        :return:boolean
+        """
         return self.role is not None and \
                (self.role.permissions & permissions) == permissions
 
-    def
+    def is_administrator(self):
+        """
+        Verify the user is or not administer.
+        :return: boolean
+        """
+        return self.can(Permission.ADMINISTER)
+
+
+class AnonymousUser(AnonymousUserMixin):
+    """
+    When user do not login, current_user is AnonmousUser.
+    """
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
