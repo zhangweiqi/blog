@@ -6,10 +6,12 @@ from flask_login import UserMixin, AnonymousUserMixin
 
 
 class Permission(object):
-    """(0x:hexadecimal)The max num is 128,as binary system have eight digits,
+    """
+    (0x:hexadecimal)The max num is 128,as binary system have eight digits,
     every digit delegate a authority with boolean,
     so it hava as far as eight authorities.Combining eight boolean nums and
-    transform it to hexadecimal,users can get their authorities. """
+    transform it to hexadecimal,users can get their authorities.
+    """
     FOLLOW = 0x01
     COMMENT = 0x02
     WRITE_ARTICLES = 0x04
@@ -63,7 +65,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
-    role = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role_id  = db.Column(db.Integer, db.ForeignKey('roles.id'))
     # 'role.id' shows this columns value is the 'id' value in model 'Role'(model's name si roles)
     password = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
@@ -73,6 +75,8 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))  # gravatar  head portrait code
+    follower_id=db.relationship('Follow',foreign_keys=)
+
 
     def gravatar(self, size=100, default='identicon', rating='g'):  # get head portrait
         """structure head portrait URL
@@ -134,3 +138,13 @@ class AnonymousUser(AnonymousUserMixin):
 
     def is_administrator(self):
         return False
+
+
+class Follow(db.Model):
+    __tablename__='follows'
+    follower_id=db.Column(db.Integer, db.ForeignKey('users.id'),
+                          primary_key=True)
+    followed_id=db.Column(db.Integer, db.ForeignKey('users.id'),
+                          primary_key=True)
+    timestamp=db.Column(db.DateTime, default=datetime.utcnow)
+

@@ -1,3 +1,4 @@
+# This module defines decorators, but i don't understand how to write decorator yet.
 from functools import wraps
 from flask import abort
 from flask_login import current_user  # current_user delegate user who visit webs
