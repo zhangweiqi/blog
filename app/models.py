@@ -1,9 +1,11 @@
-from . import db
+from . import db, login_manager
 from datetime import datetime
 import hashlib
 from flask import request, current_app
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+
 
 
 class Permission(object):
@@ -72,7 +74,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     # 'role.id' shows this columns value is the 'id' value in model 'Role'(model's name si roles)
     password = db.Column(db.String(128))
-    password_hash=db.Column(db.String(128))
+    password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
     name = db.Column(db.String(64))
     location = db.Column(db.String(128))
@@ -117,14 +119,78 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     @staticmethod
     def add_self_follows():
-        for user in User.query.all():   # return all results in form of list.
+        for user in User.query.all():  # return all results in form of list.
             if not user.is_following(user):
                 user.follow(user)
                 db.session.add(user)
                 db.session.commit()
 
-    @property
+    @property  # descriptor: Define the password's attribute.
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
 
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def generate_confirmation_token(self, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'confirm': self.id})  # generate a token string.
+
+    def confirm(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)  # decode token, if wrong, generate error.data is a dictionary.
+        except:
+            return False
+        if data.get('confirm') != self.id:
+            return False
+        self.confirmed = True
+        db.session.add(self)
+        return True
+
+    def generate_reset_token(self, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'reset': self.id})
+
+    def reset_password(self, token, new_password):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        if data.get('reset') != self.id:
+            return False
+        self.password = new_password
+        db.session.add(self)
+        return True
+
+    def generate_email_change_token(self, new_email, expiration):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'change_email': self.id, 'new_email': new_email})
+
+    def change_email(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        if data.get('change_email') != self.id:
+            return False
+        new_email = data.get('new_email')
+        if new_email is None:
+            return False
+        self.email = new_email
+        self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        db.session.add(self)
+        return True
+
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     def gravatar(self, size=100, default='identicon', rating='g'):  # get head portrait
         """structure head portrait URL
@@ -192,6 +258,21 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         """
         return self.followed.filter_by(followed_id=user.id).first() is not None
 
+    def is_followed_by(self, user):
+        """
+        if be followed,return True;if not be followed,return False.
+        """
+        return self.follower.filter_by(follower_id=user.id).first() is not None
+
+    def followed_posts(self):
+
+    def to_json(self):
+
+    def generate_auth_token(self, expiration):
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+
 
 class AnonymousUser(AnonymousUserMixin):
     """
@@ -204,6 +285,10 @@ class AnonymousUser(AnonymousUserMixin):
     def is_administrator(self):
         return False
 
+
+login_manager.anonymous_user=AnonymousUser  # ?
+
+def load_user(user_id):
 
 class Follow(db.Model):
     """
@@ -223,6 +308,8 @@ class Post(db.Model):
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    comments=db.relationship('Comment',backref='post',lazy='dynamic')
+
 
     @staticmethod
     def generate_fake(count=100):
@@ -232,12 +319,20 @@ class Post(db.Model):
         seed()
         user_count = User.query.count()  # return the number of the query result.
         for i in range(count):
-            u = User.query.offset(randint(0, user_count - 1)).first()   # offset: offset the result of
+            u = User.query.offset(randint(0, user_count - 1)).first()  # offset: offset the result of
             p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1, 3)),  # the original query,return a new query.
                      timestamp=forgery_py.date.date(True),
                      author=u)
             db.session.add(p)
             db.session.commit()
+
+    @staticmethod
+    def on_changed_body():
+
+    def to_json(self):
+
+    @staticmethod
+    def from_json():
 
 
 class Comment(db.Model):
