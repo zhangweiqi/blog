@@ -3,6 +3,7 @@ from datetime import datetime
 import hashlib
 from flask import request, current_app
 from flask_login import UserMixin, AnonymousUserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class Permission(object):
@@ -59,15 +60,19 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
+    def __repr__(self):  # representation
+        return '<Role %r>' % self.name
+
 
 class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
-    role_id  = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     # 'role.id' shows this columns value is the 'id' value in model 'Role'(model's name si roles)
     password = db.Column(db.String(128))
+    password_hash=db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
     name = db.Column(db.String(64))
     location = db.Column(db.String(128))
@@ -75,7 +80,50 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))  # gravatar  head portrait code
-    follower_id=db.relationship('Follow',foreign_keys=)
+    followed = db.relationship('Follow', foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic', cascade='all,delete-orphan')  # focus on
+    follower = db.relationship('Follow', foreign_key=[Follow.followed_id],
+                               backref=db.backref('followed', lazy='joined'),
+                               lazy='dynamic', cascade='all,delete-orphan')  # fans
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
+
+    @staticmethod
+    def generate_fake(count=100):
+        from sqlalchemy.exc import IntegrityError
+        from random import seed
+        import forgery_py
+
+        seed()  # Changing the seed of the random number generator, can be used
+        for i in range(count):  # before import other random function modules.
+            u = User(email=forgery_py.internet.email_address(),
+                     username=forgery_py.internet.user_name(True),
+                     password=forgery_py.lorem_ipsum.word(),
+                     confirmed=True,
+                     name=forgery_py.name.full_name(),
+                     location=forgery_py.address.city(),
+                     introduction=forgery_py.lorem_ipsum.sentence(),
+                     member_since=forgery_py.date.data(True))
+            db.session.add(u)
+
+            # Users'es username and email is unique,but forgery_py may generate
+            # repetitive things.If it generates repetitive things, IntegrityError will happen when
+            # commit.
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():   # return all results in form of list.
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
+
+    @property
 
 
     def gravatar(self, size=100, default='identicon', rating='g'):  # get head portrait
@@ -128,11 +176,28 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         """
         return self.can(Permission.ADMINISTER)
 
+    def follow(self, user):  # follow user
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    def unfollow(self, user):  # cancel follow user
+        f = self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self, user):
+        """
+        if follow,return True;if not  follow ,return False.
+        """
+        return self.followed.filter_by(followed_id=user.id).first() is not None
+
 
 class AnonymousUser(AnonymousUserMixin):
     """
     When user do not login, current_user is AnonmousUser.
     """
+
     def can(self, permissions):
         return False
 
@@ -141,10 +206,46 @@ class AnonymousUser(AnonymousUserMixin):
 
 
 class Follow(db.Model):
-    __tablename__='follows'
-    follower_id=db.Column(db.Integer, db.ForeignKey('users.id'),
-                          primary_key=True)
-    followed_id=db.Column(db.Integer, db.ForeignKey('users.id'),
-                          primary_key=True)
-    timestamp=db.Column(db.DateTime, default=datetime.utcnow)
+    """
+    The association table of Role and User.
+    """
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()  # return the number of the query result.
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()   # offset: offset the result of
+            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1, 3)),  # the original query,return a new query.
+                     timestamp=forgery_py.date.date(True),
+                     author=u)
+            db.session.add(p)
+            db.session.commit()
+
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Boolean)  # admin use it to ban improper comments
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
