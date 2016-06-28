@@ -1,11 +1,10 @@
 from . import db, login_manager
 from datetime import datetime
 import hashlib
-from flask import request, current_app
+from flask import request, current_app,url_for
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-
 
 
 class Permission(object):
@@ -264,9 +263,17 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         """
         return self.follower.filter_by(follower_id=user.id).first() is not None
 
-    def followed_posts(self):
+    @property
+    def followed_posts(self):      # ?
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
+                    .filter(Follow.follower_id==self.id)
 
-    def to_json(self):
+
+    def to_json(self):  # ?
+        json_user={
+            'url':url_for('api.get_post',id=self.id,_external=True),
+            'username':
+        }
 
     def generate_auth_token(self, expiration):
 
@@ -286,9 +293,11 @@ class AnonymousUser(AnonymousUserMixin):
         return False
 
 
-login_manager.anonymous_user=AnonymousUser  # ?
+login_manager.anonymous_user = AnonymousUser  # ?
+
 
 def load_user(user_id):
+
 
 class Follow(db.Model):
     """
@@ -308,8 +317,7 @@ class Post(db.Model):
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    comments=db.relationship('Comment',backref='post',lazy='dynamic')
-
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
 
     @staticmethod
     def generate_fake(count=100):
