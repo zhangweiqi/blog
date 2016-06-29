@@ -1,7 +1,7 @@
 from . import db, login_manager
 from datetime import datetime
 import hashlib
-from flask import request, current_app,url_for
+from flask import request, current_app, url_for
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -264,18 +264,26 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         return self.follower.filter_by(follower_id=user.id).first() is not None
 
     @property
-    def followed_posts(self):      # ?
-        return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
-                    .filter(Follow.follower_id==self.id)
-
+    def followed_posts(self):
+        """
+        Post: return a object of Post;
+        Follow.follower_id==self.id : query from the model of Follow ;
+        join: join the Follow and Post.
+        :return: a joined excel.
+        """
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id) \
+            .filter(Follow.follower_id == self.id)
 
     def to_json(self):  # ?
-        json_user={
-            'url':url_for('api.get_post',id=self.id,_external=True),
+        json_user = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
             'username':
         }
 
     def generate_auth_token(self, expiration):
+        s = Serializer(current_app.config['SECRET_KEY'],
+                       expires_in=expiration)
+        return s.dumps({'id':self.id}).decode('ascii')  # token
 
     def __repr__(self):
         return '<User %r>' % self.username

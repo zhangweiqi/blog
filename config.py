@@ -7,6 +7,11 @@ class config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'secret of secret'
     SQLALCHEMY_COMMIT_ON_TEARDOWN=True
     FLASK_ADMIN=os.environ.get('FLASK_ADMIN')
+    FLASKY_POSTS_PER_PAGE=10
+    FLASKY_COMMENT_PER_PAGE=10
+    FLASKY_FOLLOWERS_PER_PAGE=10
+    FLASKY_FOLLOWEDS_PER_PAGE=10
+    FLASKY_COMMENTS_PER_PAGE_MODERATE=20
     # administrator's emails, when these email are registering,
     # they will be given admin role.
 
