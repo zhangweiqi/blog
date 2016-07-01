@@ -83,10 +83,10 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     avatar_hash = db.Column(db.String(32))  # gravatar  head portrait code
     followed = db.relationship('Follow', foreign_keys=[Follow.follower_id],
                                backref=db.backref('follower', lazy='joined'),
-                               lazy='dynamic', cascade='all,delete-orphan')  # focus on
+                               lazy='dynamic', cascade='all,delete-orphan')  # all Follow user as follower
     follower = db.relationship('Follow', foreign_key=[Follow.followed_id],
                                backref=db.backref('followed', lazy='joined'),
-                               lazy='dynamic', cascade='all,delete-orphan')  # fans
+                               lazy='dynamic', cascade='all,delete-orphan')  # all Follow user as followed
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
@@ -100,7 +100,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         seed()  # Changing the seed of the random number generator, can be used
         for i in range(count):  # before import other random function modules.
             u = User(email=forgery_py.internet.email_address(),
-                       password=forgery_py.lorem_ipsum.word(),
+                     password=forgery_py.lorem_ipsum.word(),
                      confirmed=True,
                      name=forgery_py.name.full_name(),
                      location=forgery_py.address.city(),
@@ -119,7 +119,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     @staticmethod
     def add_self_follows():
         """
-
+        Make every user follow themselves by circulation.
         :return:
         """
         for user in User.query.all():  # return all results in form of list.
@@ -286,8 +286,8 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     def follow(self, user):  # follow user
         """
-
-        :param user:
+        current_user follow user.
+        :param user: followed
         :return:
         """
         if not self.is_following(user):
@@ -301,13 +301,13 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     def is_following(self, user):
         """
-        if follow,return True;if not follow ,return False.
+        if current_user has followed user, return True; if not followed ,return False.
         """
         return self.followed.filter_by(followed_id=user.id).first() is not None
 
     def is_followed_by(self, user):
         """
-        if be followed,return True;if not be followed,return False.
+        if current_user has been followed, return True; if not been followed,return False.
         """
         return self.follower.filter_by(follower_id=user.id).first() is not None
 
@@ -331,7 +331,17 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     def generate_auth_token(self, expiration):
         s = Serializer(current_app.config['SECRET_KEY'],
                        expires_in=expiration)
-        return s.dumps({'id':self.id}).decode('ascii')  # token
+        return s.dumps({'id': self.id}).decode('ascii')  # token
+
+    @staticmethod
+    def verify_auth_token(token):
+        """Get current_user_id by token."""
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except():
+            return None
+        return User.query.get(data['id'])
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -339,7 +349,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
 class AnonymousUser(AnonymousUserMixin):
     """
-    When user do not login, current_user is AnonmousUser.
+    When user do not login, current_user is AnonymousUser.
     """
 
     def can(self, permissions):
@@ -352,7 +362,10 @@ class AnonymousUser(AnonymousUserMixin):
 login_manager.anonymous_user = AnonymousUser  # ?
 
 
+@login_manager.user_loader()
 def load_user(user_id):
+    """Get the user with user_id."""
+    return User.query.get(int(user_id))  # return the row that specified primary key correspond
 
 
 class Follow(db.Model):
@@ -371,6 +384,7 @@ class Post(db.Model):
     __tablename__ = 'posts'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     comments = db.relationship('Comment', backref='post', lazy='dynamic')
@@ -399,6 +413,9 @@ class Post(db.Model):
     def from_json():
 
 
+db.event.listen(Post.body, 'set', Post.on_changed_body())  #
+
+
 class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
@@ -408,3 +425,8 @@ class Comment(db.Model):
     disabled = db.Column(db.Boolean)  # admin use it to ban improper comments
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+
+    @staticmethod
+    def on_change_body(target, value, ol):
+
+    def to_json(self):
