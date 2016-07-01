@@ -92,6 +92,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     @staticmethod
     def generate_fake(count=100):
+        """generate fake user."""
         from sqlalchemy.exc import IntegrityError
         from random import seed
         import forgery_py
@@ -99,8 +100,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         seed()  # Changing the seed of the random number generator, can be used
         for i in range(count):  # before import other random function modules.
             u = User(email=forgery_py.internet.email_address(),
-                     username=forgery_py.internet.user_name(True),
-                     password=forgery_py.lorem_ipsum.word(),
+                       password=forgery_py.lorem_ipsum.word(),
                      confirmed=True,
                      name=forgery_py.name.full_name(),
                      location=forgery_py.address.city(),
@@ -118,6 +118,10 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     @staticmethod
     def add_self_follows():
+        """
+
+        :return:
+        """
         for user in User.query.all():  # return all results in form of list.
             if not user.is_following(user):
                 user.follow(user)
@@ -126,24 +130,37 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     @property  # descriptor: Define the password's attribute.
     def password(self):
+        """define password's property is AttributeError."""
         raise AttributeError('password is not a readable attribute')
 
     @password.setter
     def password(self, password):
+        """generate password_hash by password."""
         self.password_hash = generate_password_hash(password)
 
     def verify_password(self, password):
+        """check the password with the passowrd_hash."""
         return check_password_hash(self.password_hash, password)
 
     def generate_confirmation_token(self, expiration=3600):
+        """
+        use SECRET_KEY and 'key-value's  to generate a token(confirm account).
+        :param expiration: period of validity, unit is second.
+        :return:a token :to confirm the user_id.
+        """
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({'confirm': self.id})  # generate a token string.
 
     def confirm(self, token):
+        """
+        use SECRET_KEY and token to confirm the user_id(confirm account).
+        :param token:
+        :return: if token is user's,return true;else return false.
+        """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)  # decode token, if wrong, generate error.data is a dictionary.
-        except:
+        except():
             return False
         if data.get('confirm') != self.id:
             return False
@@ -152,14 +169,25 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         return True
 
     def generate_reset_token(self, expiration=3600):
+        """
+        use SECRET_KEY and 'key-value' to generate a token(reset password).
+        :param expiration: period of validity, unit is second.
+        :return:a token :to confirm the reset password.
+        """
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({'reset': self.id})
 
     def reset_password(self, token, new_password):
+        """
+        use token and SECRET_KEY to confirm the user_id.
+        :param token:
+        :param new_password:
+        :return: boolean : success-true; fail-false
+        """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
-        except:
+        except():
             return False
         if data.get('reset') != self.id:
             return False
@@ -168,14 +196,25 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         return True
 
     def generate_email_change_token(self, new_email, expiration):
+        """
+
+        :param new_email:
+        :param expiration:
+        :return: token
+        """
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({'change_email': self.id, 'new_email': new_email})
 
     def change_email(self, token):
+        """
+        confirm the user_id and new_email.
+        :param token:
+        :return: boolean
+        """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
-        except:
+        except():
             return False
         if data.get('change_email') != self.id:
             return False
@@ -188,6 +227,10 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         return True
 
     def ping(self):
+        """
+        refresh the last_seen.
+        :return: nothing
+        """
         self.last_seen = datetime.utcnow()
         db.session.add(self)
 
@@ -195,7 +238,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         """structure head portrait URL
         size:100px;
         default:Users without register Gravatar use default pictures-produce way,
-        picture builder:identicon;
+        picture builder: identicon;
         rating:picture level."""
         if request.is_secure:
             url = 'https://secure.gravatar.com/avatar'
@@ -209,8 +252,8 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     def __init__(self, **kwargs):
         """
         Define the role of users.
-        Firstly call baseclass's function, if still not define role after
-        create baseclass object, then define the role is admin or default
+        Firstly call base class's function, if still not define role after
+        create base class object, then define the role is admin or default
         depend on email address.
         :param kwargs:
         """
@@ -242,6 +285,11 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
         return self.can(Permission.ADMINISTER)
 
     def follow(self, user):  # follow user
+        """
+
+        :param user:
+        :return:
+        """
         if not self.is_following(user):
             f = Follow(follower=self, followed=user)
             db.session.add(f)
@@ -253,7 +301,7 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
 
     def is_following(self, user):
         """
-        if follow,return True;if not  follow ,return False.
+        if follow,return True;if not follow ,return False.
         """
         return self.followed.filter_by(followed_id=user.id).first() is not None
 
