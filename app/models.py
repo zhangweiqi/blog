@@ -1,3 +1,4 @@
+# coding: utf-8
 from . import db, login_manager
 from datetime import datetime
 import hashlib
@@ -7,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 import bleach
 from markdown import markdown
-
+from exceptions import ValidationError
 
 class Permission(object):
     """
@@ -327,8 +328,14 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     def to_json(self):  # ?
         json_user = {
             'url': url_for('api.get_post', id=self.id, _external=True),
-            'username':
+            'username':self.username,
+            'member_since':self.member_since,
+            'last_seen':self.last_seen,
+            'posts':url_for('api.get_user_posts',id=self.id,_external=True),
+            'followed_posts':url_for('api.get_user_followed_posts',id=self.id,_external=True),
+            'post_count':self.posts.count()
         }
+        return json_user
 
     def generate_auth_token(self, expiration):
         s = Serializer(current_app.config['SECRET_KEY'],
@@ -424,9 +431,25 @@ class Post(db.Model):
             tags=allowed_tags, strip=True))
 
     def to_json(self):
+        json_post={
+            'url':url_for('api.get_post',id=self.id, _external=True),# _external=True means return whole URL.
+            'body': self.body,
+            'body_html':self.body_html,
+            'timestamp':self.timestamp,
+            'author':url_for('api.get_user',id=self.author_id,_external=True),
+            'comments':url_for('api.get_comments',id=self.id,_external=True),
+            'comment_count':self.comments.count()
+        }
+        return json_post
 
     @staticmethod
-    def from_json():
+    def from_json(json_post):
+        body=json_post.get('body')
+        if body is None or body == '':
+            raise ValidationError('文章无内容！')
+        return Post(body=body)
+
+
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body())
@@ -455,7 +478,21 @@ class Comment(db.Model):
             tags=allowed_tags, strip=True))
 
     def to_json(self):
+        json_comment={
+            'url':url_for('api.get_comment',id=self.id,_external=True),
+            'post':url_for('api.get_post',id=self.id,_external=True),
+            'body':self.body,
+            'body_html':self.body_html,
+            'timestamp':self.timestamp,
+            'author':url_for('api.get_user',id=self.author_id,_external=True),
+        }
+        return json_comment
 
-    def from_json
+    @staticmethod
+    def from_json(json_comment):
+        body=json_comment.get('body')
+        if body is None or body == '':
+            raise ValidationError('评论无内容！')
+        return Comment(body=body)
 
 db.event.listen(Comment.body,'set',Comment.on_changed_body())
