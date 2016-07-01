@@ -5,6 +5,8 @@ from flask import request, current_app, url_for
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+import bleach
+from markdown import markdown
 
 
 class Permission(object):
@@ -405,7 +407,21 @@ class Post(db.Model):
             db.session.commit()
 
     @staticmethod
-    def on_changed_body():
+    def on_changed_body(target, value, oldvalue, initiator):
+        """
+        Transform markdown to html.
+        :param target:
+        :param value:
+        :param oldvalue:
+        :param initiator:
+        :return:
+        """
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p']
+        target.body_html = bleach.linkifty(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tags, strip=True))
 
     def to_json(self):
 
@@ -413,7 +429,11 @@ class Post(db.Model):
     def from_json():
 
 
-db.event.listen(Post.body, 'set', Post.on_changed_body())  #
+db.event.listen(Post.body, 'set', Post.on_changed_body())
+"""
+The function 'on_changed_body' is registered in 'Post.body',its the listener of
+the event 'set' of SQLAlchemy. So if the body of instance changed, function will be import.
+"""
 
 
 class Comment(db.Model):
@@ -427,6 +447,15 @@ class Comment(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
 
     @staticmethod
-    def on_change_body(target, value, ol):
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i',
+                        'strong']
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tags, strip=True))
 
     def to_json(self):
+
+    def from_json
+
+db.event.listen(Comment.body,'set',Comment.on_changed_body())
