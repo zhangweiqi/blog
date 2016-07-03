@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% blockc title %}迷幻氛围 - {{ code }}: {{ name }}{% endblock %}
+
+{% block page_content　%}
+<div class="page-header">
+    <h1>{{ code }}: {{ name }}</h1>
+    <p>{{ description }}</p>
+</div>
+{% endblock %}

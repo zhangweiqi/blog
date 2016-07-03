@@ -1,10 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
-</body>
-</html>
+
+{% block title %}迷幻氛围 - 修改文章{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>修改文章</h1>
+</div>
+<div>
+    {{ wtf.quick_form(form) }}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ pagedown.include_pagedown() }}
+{% endblock %}

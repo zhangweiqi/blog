@@ -1,10 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}迷幻氛围 - 验证你的账户{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>
+        你好，{{ current_user.username }}!
+    </h1>
+    <h3>
+        你还没有验证你的账户。
+    </h3>
+    <p>
+        访问网站之前，请先验证你的账户。
+        你的邮箱应该受到了一封包含验证链接的邮件。
+    </p>
+    <P>
+        需要另一封验证邮件？
+        <a href="{{ url_for('auth.reset_confirmation') }}">点击这里</a>
+    </P>
+</div>

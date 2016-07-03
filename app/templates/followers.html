@@ -1,10 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
 
-</body>
-</html>
+{% block title %}迷幻氛围 - {{ title }}{{ user.username }}{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>{{ title }} {{ user.username }}</h1>
+</div>
+<table class="table table-hover followers" >
+    <thead><tr><th>用户</th><ht>自从</ht></tr></thead>
+    {% for follow in follows %}
+    {% if follow.user != user %}
+    <tr>
+        <td>
+            <a href="{{ url_for('.user',username=follow.user.username) }}">
+                <img class="img-rounded" src="{{ follow.user.gravatar(size=32) }}">
+                {{ follow.user.username }}
+            </a>
+        </td>
+        <td>{{ moment(follow.timestamp).format('L') }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+</table>
+<div class="pagination">
+    {{ macros.paginatio_widget(pagination, endpoint, username =user.username) }}
+</div>
+{% endblock %}

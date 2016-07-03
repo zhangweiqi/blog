@@ -1,0 +1,11 @@
+亲爱的{{ user.username }},
+
+为了验证你的新邮箱地址，请点击下面的链接：
+
+{{ url_for('auth.change_email', token=token, _externall=True) }}
+
+您诚恳的:
+
+迷幻氛围
+
+注意：请勿直接回复此邮件。
