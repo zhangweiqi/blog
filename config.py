@@ -31,19 +31,19 @@ class Config(object):
 class DevelopConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URL = os.environ.get('DEV_DATABASE_URL') or \
-                              'mysql://root:123581@localhost/dev'
+                              'mysql://root:zwq6631666!@localhost/dev'
 
 
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URL = os.environ.get('TEST_DATABASE_URL') or \
-                              'mysql://root:123581@localhost/test'
+                              'mysql://root:zwq6631666!@localhost/test'
     WTF_CSRF_ENABLED = False  # avoid handle CSRF token
 
 
 class ProductConfig(Config):
     SQLALCHEMY_DATABASE_URL = os.environ.get('PRO_DATABASE_URL') or \
-                              'mysql://root:123581@localhost/pro'
+                              'mysql://root:zwq6631666!@localhost/pro'
     SSL_DISABLE = False
 
     @classmethod
