@@ -7,17 +7,17 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from flask_moment import Moment
 from flask_pagedown import PageDown
+import MySQLdb
 
 db = SQLAlchemy()
 bootstrap = Bootstrap()
 mail = Mail()
-moment= Moment()
-pagedown=PageDown()
+moment = Moment()
+pagedown = PageDown()
 
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'  # 'auth.login' is login_page blueprint route
-login_manager.login_message = '请先登陆！'  # flash message
 
 
 def create_app(config_name):
@@ -31,6 +31,10 @@ def create_app(config_name):
     mail.init_app(app)
     moment.init_app(app)
     pagedown.init_app(app)
+
+    if not app.debug and not app.testing and not app.config['SSL_DISABLE']:
+        from flask.ext.sslify import SSLify
+        sslify=SSLify(app)
 
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)

@@ -150,6 +150,7 @@ def change_email_request():
             flash('密码错误！')
     return render_template('auth/change_email.html', form=form)
 
+
 @auth.route('/change-email/<token>')
 @login_required
 def change_email(token):

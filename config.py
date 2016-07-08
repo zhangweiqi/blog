@@ -1,51 +1,79 @@
+# coding: utf-8
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
 
-
-class config(object):
+class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'secret of secret'
+    SSL_DISABLE = True  # Use SSL or not(only used in production).
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
-    FLASKY_POSTS_PER_PAGE = 10
-    FLASKY_COMMENT_PER_PAGE = 10
-    FLASKY_FOLLOWERS_PER_PAGE = 10
-    FLASKY_FOLLOWEDS_PER_PAGE = 10
-    FLASKY_COMMENTS_PER_PAGE_MODERATE = 20
-    FLASKY_MAIL_SUBJECT_PREFIX = 'Blog_of_Zhang'
-    FLASKY_MAIL_SENDER = 'zhangweiqi1015@gmail.com'
-
-    # administrator's emails, when these email are registering,
-    # they will be given admin role.
+    SQLALCHEMY_RECORD_QUERIES = True  # Tell Flask-SQLAlchemy open 'order-query-statistics-number'
+    # for logging SQLAlchemy slow query
+    MAIL_SERVER = 'smtp.cntv.cn'
+    MAIL_PORT = 25
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    SLOW_DB_QUERY_TIME = 0.5
+    ADMIN_EMAIL = os.environ.get('FLASK_ADMIN')  # Store the e-mai addresses of administers
+    POSTS_PER_PAGE = 10
+    COMMENTS_PER_PAGE = 20
+    FOLLOWERS_PER_PAGE = 30
+    FOLLOWEDS_PER_PAGE = 30
+    COMMENTS_PER_PAGE_MODERATE = 20
+    MAIL_SUBJECT_PREFIX = '迷幻'
+    MAIL_SENDER = 'zhangwq1015@outlook.com'
 
     @staticmethod
     def init_app(app):
         pass
 
 
-class developconfig(config):
+class DevelopConfig(Config):
     DEBUG = True
-    SQL_DATABASE_URL = os.environ.get('DEV_DATABASE_URL') or \
-                       'mysql://username:password@hostname/' \
-                       + os.environ.get(basedir, 'data-dev.sql')
+    SQLALCHEMY_DATABASE_URL = os.environ.get('DEV_DATABASE_URL') or \
+                              'mysql://root:123581@localhost/dev'
 
 
-class testconfig(config):
+class TestConfig(Config):
     TESTING = True
-    SQL_DATABASE_URL = os.environ.get('TEST_DATABASE_URL') or \
-                       'mysql://username:password@hostname/' \
-                       + os.environ.get(basedir, 'data-test.sql')
+    SQLALCHEMY_DATABASE_URL = os.environ.get('TEST_DATABASE_URL') or \
+                              'mysql://root:123581@localhost/test'
+    WTF_CSRF_ENABLED = False  # avoid handle CSRF token
 
 
-class productconfig(config):
-    SQL_DATABASE_URL = os.environ.get('PRO_DATABASE_URL') or \
-                       'mysql://username:password@hostname/' \
-                       + os.environ.get(basedir, 'data-pro.sql')
+class ProductConfig(Config):
+    SQLALCHEMY_DATABASE_URL = os.environ.get('PRO_DATABASE_URL') or \
+                              'mysql://root:123581@localhost/pro'
+    SSL_DISABLE = False
+
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+
+        # email errors to the administrators
+        import logging
+        from logging.handlers import SMTPHandler
+        credentials = None
+        secure = None
+        if getattr(cls, 'MAIL_USERNAME', None) is not None:
+            credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
+            if getattr(cls, 'MAIL_USE_TLS', None):
+                secure = ()
+        mail_handler = SMTPHandler(
+            mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
+            fromaddr=cls.MAIL_SENDER,
+            toaddrs=[cls.ADMIN_EMAIL],
+            subject=cls.MAIL_SUBJECT_PREFIX + ' Application Error',
+            credentials=credentials,
+            secure=secure)
+        mail_handler.setLevel(logging.ERROR)
+        app.logger.addHandler(mail_handler)
+
 
 
 config = {
-    'develop': developconfig,
-    'test': testconfig,
-    'product': productconfig,
-    'default': developconfig
+    'develop': DevelopConfig,
+    'test': TestConfig,
+    'product': ProductConfig,
+    'default': DevelopConfig
 }

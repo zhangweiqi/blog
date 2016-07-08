@@ -51,6 +51,6 @@ def edit_post(id):
     if g.current_user != post.author and \
             not g.current_user.can(Permission.ADMINISTER):
         return forbidden('您的权限不够！')
-    post.body=request.json.get('body',post.body)    # ?
+    post.body = request.json.get('body', post.body)  # ?
     db.session.add(post)
     return jsonify(post.to_json())

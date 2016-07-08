@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import os
-
-if os.environ.get('FLASKY_COVERAGE'):
+import os   # get the report of code coverage
+COV = None
+if os.environ.get('COVERAGE'):
     import coverage
-
-    COV = coverage
+    COV = coverage.coverage(branch=True, include='app/*')
     COV.start()
 
 if os.path.exists('.env'):
@@ -19,26 +18,37 @@ from app.models import User, Follow, Role, Permission, Post, Comment
 from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
 
-app = create_app(os.getenv('FLASKY_CONFIG') or 'default')
+app = create_app(os.getenv('BLOG_CONFIG') or 'default')
 manager = Manager(app)
 migrate = Migrate(app, db)
 
 
 def make_shell_context():
+    """
+    This is a callback function, it registers app, instance of SQL and models,
+    so these objects can be imported into shell.
+    :return: a dictionary of objects
+    """
     return dict(app=app, db=db, User=User, Follow=Follow, Role=Role,
                 Permission=Permission, Post=Post, Comment=Comment)
+    # __builtin__ function, dict(**kwargs) -> new dictionary initialized with the name=value
+    # pairs in the keyword argument list. For example:  dict(one=1, two=2)
 
 
-manager.add_command("shell", Shell(make_context=make_shell_context()))
-manager.add_command('db', MigrateCommand)
+manager.add_command("shell", Shell(make_context=make_shell_context()))  # import objects to 'shell'
+manager.add_command('db', MigrateCommand)   # import SQL migrate orders to 'db', like init(create a migrate warehouse),
+#  migrate(create migrate scripts automatically), upgrade and downgrade.
 
 
 @manager.command
 def test(coverage=False):
-    """Run the unit tests."""
-    if coverage and not os.environ.get('FLASK_COVERAGE'):
+    """
+    Run the unit tests.
+    Actually I don't understand this part(get the report of code coverage).
+    """
+    if coverage and not os.environ.get('COVERAGE'):
         import sys
-        os.environ['FLASK_COVERAGE'] = '1'
+        os.environ['COVERAGE'] = '1'
         os.execvp(sys.executable, [sys.executable] + sys.argv)
     import unittest
     tests = unittest.TestLoader().discover('tests')
@@ -57,7 +67,10 @@ def test(coverage=False):
 
 @manager.command
 def profile(length=25, profile_dir=None):
-    """Start the application under the code profiler."""
+    """
+    Start the application under the code profiler.
+    Found the slowest part of the app. Order: 'python manage.py profile'.
+    """
     from werkzeug.contrib.profiler import ProfilerMiddleware
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[length],
                                       profile_dir=profile_dir)

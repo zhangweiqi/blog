@@ -10,6 +10,7 @@ import bleach
 from markdown import markdown
 from exceptions import ValidationError
 
+
 class Permission(object):
     """
     (0x:hexadecimal)The max num is 128,as binary system have eight digits,
@@ -68,7 +69,7 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 
-class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
+class User(UserMixin, db.Model):  # inherit from SQLAlchemy and flask-login
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
@@ -328,12 +329,12 @@ class User(UserMixin, db.Models):  # inherit from SQLAlchemy and flask-login
     def to_json(self):  # ?
         json_user = {
             'url': url_for('api.get_post', id=self.id, _external=True),
-            'username':self.username,
-            'member_since':self.member_since,
-            'last_seen':self.last_seen,
-            'posts':url_for('api.get_user_posts',id=self.id,_external=True),
-            'followed_posts':url_for('api.get_user_followed_posts',id=self.id,_external=True),
-            'post_count':self.posts.count()
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'posts': url_for('api.get_user_posts', id=self.id, _external=True),
+            'followed_posts': url_for('api.get_user_followed_posts', id=self.id, _external=True),
+            'post_count': self.posts.count()
         }
         return json_user
 
@@ -431,25 +432,23 @@ class Post(db.Model):
             tags=allowed_tags, strip=True))
 
     def to_json(self):
-        json_post={
-            'url':url_for('api.get_post',id=self.id, _external=True),# _external=True means return whole URL.
+        json_post = {
+            'url': url_for('api.get_post', id=self.id, _external=True),  # _external=True means return whole URL.
             'body': self.body,
-            'body_html':self.body_html,
-            'timestamp':self.timestamp,
-            'author':url_for('api.get_user',id=self.author_id,_external=True),
-            'comments':url_for('api.get_comments',id=self.id,_external=True),
-            'comment_count':self.comments.count()
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id, _external=True),
+            'comments': url_for('api.get_comments', id=self.id, _external=True),
+            'comment_count': self.comments.count()
         }
         return json_post
 
     @staticmethod
     def from_json(json_post):
-        body=json_post.get('body')
+        body = json_post.get('body')
         if body is None or body == '':
             raise ValidationError('文章无内容！')
         return Post(body=body)
-
-
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body())
@@ -478,21 +477,22 @@ class Comment(db.Model):
             tags=allowed_tags, strip=True))
 
     def to_json(self):
-        json_comment={
-            'url':url_for('api.get_comment',id=self.id,_external=True),
-            'post':url_for('api.get_post',id=self.id,_external=True),
-            'body':self.body,
-            'body_html':self.body_html,
-            'timestamp':self.timestamp,
-            'author':url_for('api.get_user',id=self.author_id,_external=True),
+        json_comment = {
+            'url': url_for('api.get_comment', id=self.id, _external=True),
+            'post': url_for('api.get_post', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id, _external=True),
         }
         return json_comment
 
     @staticmethod
     def from_json(json_comment):
-        body=json_comment.get('body')
+        body = json_comment.get('body')
         if body is None or body == '':
             raise ValidationError('评论无内容！')
         return Comment(body=body)
 
-db.event.listen(Comment.body,'set',Comment.on_changed_body())
+
+db.event.listen(Comment.body, 'set', Comment.on_changed_body())
