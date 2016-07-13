@@ -13,7 +13,7 @@ class LoginForm(Form):
 
 
 class RegistrationForm(Form):
-    email = StringField('电子邮箱', validators=[Required, Length(1, 64), Email()])
+    email = StringField('电子邮箱', validators=[Required(), Length(1, 64), Email()])
     username = StringField('用户名', validators=[
         Required(), Length(1, 64), Regexp('^[A-Za-z][A-Za-z0-9_]*$', 0,
                                           '用户名必须为字母、数字和下划线！')])

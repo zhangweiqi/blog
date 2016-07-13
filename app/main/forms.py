@@ -4,6 +4,9 @@ from wtforms import TextAreaField, SubmitField, StringField, BooleanField, \
     SelectField, ValidationError
 from wtforms.validators import Required, Length, Email, Regexp
 from ..models import Role, User
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 
 class EditProfileForm(Form):

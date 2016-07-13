@@ -41,7 +41,6 @@ class Role(db.Model):
     # lazy=dynamic: appoint the way of loading the record,this means not load,
     # but offer the query of loading.
 
-
     @staticmethod
     def insert_roles():  # do not understand
         roles = {
@@ -60,13 +59,25 @@ class Role(db.Model):
             role = Role.query.filter_by(name=r).first()
             if role is None:
                 role = Role(name=r)
-            role.permissions = role[r][0]
+            role.permissions = roles[r][0]
             role.default = roles[r][1]
             db.session.add(role)
         db.session.commit()
 
     def __repr__(self):  # representation
         return '<Role %r>' % self.name
+
+
+class Follow(db.Model):
+    """
+    The association table of Role and User.
+    """
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class User(UserMixin, db.Model):  # inherit from SQLAlchemy and flask-login
@@ -88,7 +99,7 @@ class User(UserMixin, db.Model):  # inherit from SQLAlchemy and flask-login
     followed = db.relationship('Follow', foreign_keys=[Follow.follower_id],
                                backref=db.backref('follower', lazy='joined'),
                                lazy='dynamic', cascade='all,delete-orphan')  # all Follow user as follower
-    follower = db.relationship('Follow', foreign_key=[Follow.followed_id],
+    follower = db.relationship('Follow', foreign_keys=[Follow.followed_id],
                                backref=db.backref('followed', lazy='joined'),
                                lazy='dynamic', cascade='all,delete-orphan')  # all Follow user as followed
     posts = db.relationship('Post', backref='author', lazy='dynamic')
@@ -107,9 +118,11 @@ class User(UserMixin, db.Model):  # inherit from SQLAlchemy and flask-login
                      password=forgery_py.lorem_ipsum.word(),
                      confirmed=True,
                      name=forgery_py.name.full_name(),
+                     username=forgery_py.name.full_name(),
                      location=forgery_py.address.city(),
                      introduction=forgery_py.lorem_ipsum.sentence(),
-                     member_since=forgery_py.date.data(True))
+                     member_since=forgery_py.date.date(True),
+                     role_id=Role.query.get(3))
             db.session.add(u)
 
             # Users'es username and email is unique,but forgery_py may generate
@@ -248,7 +261,7 @@ class User(UserMixin, db.Model):  # inherit from SQLAlchemy and flask-login
             url = 'https://secure.gravatar.com/avatar'
         else:
             url = 'http://www.gravatar.com/avatar'
-        hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        hash = self.avatar_hash or hashlib.md5(self.email.encode('utf-8')).hexdigest()
         # encode:code with type of utf-8    hexdigest():hexadecimal
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
             url=url, hash=hash, size=size, default=default, rating=rating)
@@ -263,14 +276,14 @@ class User(UserMixin, db.Model):  # inherit from SQLAlchemy and flask-login
         """
         super(User, self).__init__(**kwargs)
         if self.role is None:
-            if self.email == current_app.config['FLASKY_ADMIN']:
+            if self.email == current_app.config['ADMIN_EMAIL']:
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(
                 self.email.encode('utf-8')).hexdigest()
-        self.followed.append(Follow(follow=self))
+        self.followed.append(Follow(followed=self))
 
     def can(self, permissions):
         """
@@ -372,22 +385,10 @@ class AnonymousUser(AnonymousUserMixin):
 login_manager.anonymous_user = AnonymousUser  # ?
 
 
-@login_manager.user_loader()
+@login_manager.user_loader
 def load_user(user_id):
     """Get the user with user_id."""
     return User.query.get(int(user_id))  # return the row that specified primary key correspond
-
-
-class Follow(db.Model):
-    """
-    The association table of Role and User.
-    """
-    __tablename__ = 'follows'
-    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-                            primary_key=True)
-    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-                            primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Post(db.Model):
@@ -427,7 +428,7 @@ class Post(db.Model):
         allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
                         'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
                         'h1', 'h2', 'h3', 'p']
-        target.body_html = bleach.linkifty(bleach.clean(
+        target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))
 
@@ -451,7 +452,7 @@ class Post(db.Model):
         return Post(body=body)
 
 
-db.event.listen(Post.body, 'set', Post.on_changed_body())
+db.event.listen(Post.body, 'set', Post.on_changed_body)
 """
 The function 'on_changed_body' is registered in 'Post.body',its the listener of
 the event 'set' of SQLAlchemy. So if the body of instance changed, function will be import.
@@ -495,4 +496,4 @@ class Comment(db.Model):
         return Comment(body=body)
 
 
-db.event.listen(Comment.body, 'set', Comment.on_changed_body())
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)

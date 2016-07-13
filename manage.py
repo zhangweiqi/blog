@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-import os   # get the report of code coverage
+import os  # get the report of code coverage
+import MySQLdb
+
 COV = None
 if os.environ.get('COVERAGE'):
     import coverage
+
     COV = coverage.coverage(branch=True, include='app/*')
     COV.start()
 
@@ -31,12 +34,16 @@ def make_shell_context():
     """
     return dict(app=app, db=db, User=User, Follow=Follow, Role=Role,
                 Permission=Permission, Post=Post, Comment=Comment)
-    # __builtin__ function, dict(**kwargs) -> new dictionary initialized with the name=value
-    # pairs in the keyword argument list. For example:  dict(one=1, two=2)
 
 
-manager.add_command("shell", Shell(make_context=make_shell_context()))  # import objects to 'shell'
-manager.add_command('db', MigrateCommand)   # import SQL migrate orders to 'db', like init(create a migrate warehouse),
+# __builtin__ function, dict(**kwargs) -> new dictionary initialized with the name=value
+# pairs in the keyword argument list. For example:  dict(one=1, two=2)
+
+
+manager.add_command("shell", Shell(make_context=make_shell_context))  # import objects to 'shell'
+manager.add_command('db', MigrateCommand)  # import SQL migrate orders to 'db', like init(create a migrate warehouse),
+
+
 #  migrate(create migrate scripts automatically), upgrade and downgrade.
 
 

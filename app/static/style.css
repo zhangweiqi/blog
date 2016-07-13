@@ -1,5 +1,10 @@
 .profile-thumbnail { /* 略缩图 */
+    position: static;
+}
+
+.profile-thumbnail-user {
     position: absolute;
+    left: 70px;
 }
 
 .page-header { /* 页眉 */

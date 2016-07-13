@@ -10,16 +10,18 @@ from .. import db
 from ..email import send_email
 
 
-@auth.before_app_request()
+@auth.before_app_request
 def before_request():
     if current_user.is_authenticated:
         current_user.ping()  # refresh the timestamp
         if not current_user.confirmed \
-                and request.endpoint[:5] != 'auth.'  # ?
+                and request.endpoint[:5] != 'auth.' \
+                and request.endpoint != 'static':
+            return redirect(url_for('auth.unconfirmed'))
 
 
 @auth.route('/unconfirmed')
-def uncofirmed():
+def unconfirmed():
     if current_user.is_anonymous or current_user.confirmed:
         return redirect(url_for('main.index'))
     return render_template('auth/unconfirmed.html')
@@ -45,7 +47,7 @@ def logout():
     return redirect(url_for('main.index'))
 
 
-@auth.route('/register', methods=['GET', 'POSTS'])
+@auth.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -96,7 +98,7 @@ def change_password():
             return redirect(url_for('main.index'))
         else:
             flash('旧密码错误！')
-    return render_template('auth/chagne_password.html', form=form)
+    return render_template('auth/change_password.html', form=form)
 
 
 @auth.route('/reset', methods=['GET', 'POST'])
